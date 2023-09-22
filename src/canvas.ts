@@ -5,11 +5,11 @@ const canvas = document.getElementsByTagName("canvas")[0];
 const ctx = canvas.getContext("2d");
 
 // Creating an offscreen canvas to render to when the page resizes
-canvas.offscreenCanvas = document.createElement("canvas");
-canvas.offscreenCanvas.width = window.innerWidth;
-canvas.offscreenCanvas.height = window.innerHeight;
+let offscreenCanvas = document.createElement("canvas");
+offscreenCanvas.width = window.innerWidth;
+offscreenCanvas.height = window.innerHeight;
 
-      let color = "rgba(255, 89, 94, 0.05)";
+let color = "rgba(255, 89, 94, 0.05)";
 
 export const init = () => {
   canvas.width = window.innerWidth;
@@ -18,13 +18,13 @@ export const init = () => {
 };
 
 export const resize = () => {
-  canvas.offscreenCanvas.width = window.innerWidth;
-  canvas.offscreenCanvas.height = window.innerHeight;
-  const offscreenCtx = canvas.offscreenCanvas.getContext("2d");
-  offscreenCtx.drawImage(canvas, 0, 0);
+  offscreenCanvas.width = window.innerWidth;
+  offscreenCanvas.height = window.innerHeight;
+  const offscreenCtx = offscreenCanvas.getContext("2d");
+  offscreenCtx?.drawImage(canvas, 0, 0);
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  ctx?.drawImage(canvas.offscreenCanvas, 0, 0);
+  ctx?.drawImage(offscreenCanvas, 0, 0);
 };
 
 const drawPoints = (
