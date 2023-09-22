@@ -1,7 +1,7 @@
 import { sleep } from "./utils.ts";
 import { extrudeMidpoints, getPoints, Vector2D, Polygon } from "./geometry.ts";
 
-const canvas = document.getElementsByTagName("canvas")[0];
+export const canvas = document.getElementsByTagName("canvas")[0];
 const ctx = canvas.getContext("2d");
 
 // Creating an offscreen canvas to render to when the page resizes
@@ -10,10 +10,11 @@ offscreenCanvas.width = window.innerWidth;
 offscreenCanvas.height = window.innerHeight;
 
 let color = "rgba(255, 89, 94, 0.05)";
+export let hovered = false;
 
 export const init = () => {
   canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  canvas.height = window.innerHeight * 0.9;
   if (ctx) draw(ctx);
 };
 
@@ -93,17 +94,27 @@ const blotch = (polygon: Polygon) => {
 
 let mouseDown = false;
 
+canvas.addEventListener("mouseenter", () => {
+  hovered = true;
+  console.log(hovered);
+});
+canvas.addEventListener("mouseleave", () => {
+  hovered = false;
+  console.log(hovered);
+});
 export const onMouseDown = (ev: MouseEvent) => {
   mouseDown = true;
-  const polygon: Polygon = {
-    size: Math.random() * (200 - 100) + 100,
-    sides: 10,
-    center: {
-      x: ev.clientX,
-      y: ev.clientY,
-    },
-  };
-  blotch(polygon);
+  if (hovered) {
+    const polygon: Polygon = {
+      size: Math.random() * (200 - 100) + 100,
+      sides: 10,
+      center: {
+        x: ev.clientX,
+        y: ev.clientY,
+      },
+    };
+    blotch(polygon);
+  }
 };
 
 export const onMouseUp = (ev: MouseEvent) => {
@@ -119,7 +130,7 @@ export const onMouseMove = (ev: MouseEvent) => {
       y: ev.clientY,
     },
   };
-  if (mouseDown) {
+  if (mouseDown && hovered) {
     sleep(50).then(() => {
       blotch(polygon);
     });
