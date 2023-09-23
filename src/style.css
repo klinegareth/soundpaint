@@ -65,6 +65,10 @@ h1 {
   inline-size: 100%;
 }
 
+.content h1 {
+    text-align: center;
+}
+
 p {
   font-size: 0.5em;
   inline-size: 100%;
@@ -80,12 +84,14 @@ h2 {
 a {
   text-decoration: none;
   color: black;
+  font-weight: bold;
 }
 
 .newtab-icon {
   display: inline-block;
   block-size: 0.5em;
   margin-block-end: 0.1em;
+  margin-inline-start: 0.2em;
 }
 
 .inline-image {
