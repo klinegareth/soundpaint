@@ -1,3 +1,5 @@
+import hljs from "highlight.js";
+import "highlight.js/styles/github-dark-dimmed.css";
 import "./style.css";
 import * as canvas from "./canvas.ts";
 import * as audio from "./audio.ts";
@@ -19,3 +21,4 @@ window.addEventListener("keydown", (ev) => {
   canvas.onKeyDown(ev);
   audio.onKeyDown(ev);
 });
+hljs.highlightAll();

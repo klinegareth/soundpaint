@@ -3,6 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/firacode@6.2.0/distr/fira_code.css"
+    />
+    <link rel="stylesheet" href="/style.css" />
     <title>soundpaint</title>
   </head>
   <body>
@@ -10,13 +15,294 @@
       <canvas width="500" height="500"></canvas>
       <div class="canvas-header">
         <h1>
-          ʕ·ᴥ·ʔ-☆soundpaint☆<br /><span style="color: grey"
-            >click & drag. press a, s, d, f, g to change sample.</span
+          ʕ·ᴥ·ʔ-☆soundpaint☆<br /><span style="color: grey; font-size: 0.7em"
+            >click & drag. a, s, d, f, g to change sample. scroll 4 docs</span
           >
         </h1>
       </div>
     </div>
-    <div class="content"></div>
+    <div class="content">
+      <h1>inspiration</h1>
+      <h2>
+        <a
+          href="https://tylerxhobbs.com/essays/2020/how-to-hack-a-painting"
+          target="_blank"
+          rel="norefferer"
+          >how to hack a painting <img class="newtab-icon" src="/newtab.png"
+        /></a>
+      </h2>
+      <iframe
+        class="youtube-painting"
+        src="https://www.youtube.com/embed/5R9eywArFTE"
+        title='"How to Hack a Painting" by Tyler Hobbs'
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+      ></iframe>
+      <p>
+        i love how tyler hobbs breaks down a single watercolor stroke into its
+        component parts. his walkthrough made it really simple to implement the
+        data structures i needed to build this effect from scratch.
+      </p>
+      <h1>implementation</h1>
+      <h2>geometry</h2>
+      <p>
+        getting everything to work in p5 would've been painful, so instead a
+        wrote a typescript app to draw directly to the canvas. this made
+        debugging much easier.
+      </p>
+      <p>
+        visually, my design is a port of hobbs' work in typescript, with added
+        animation code. the algorithm that hobbs describes basically takes a
+        polygon and extrudes the midpoints of each of its sides. it does this
+        recursively, decreasing the opacity and the amount of extrusion on each
+        pass. with some random variation, this technique produces an effect that
+        looks surprisingly natural.
+      </p>
+      <p>
+        to start, i added two data structures to define a 2d vector and a
+        polygon:
+      </p>
+      <pre><code
+
+          class="hljs language-ts"
+        >export interface Vector2D {
+  x: number;
+  y: number;
+}
+export interface Polygon {
+  sides: number;
+  size: number;
+  center: Vector2D;
+}</code></pre>
+      <p>
+        then i wrote a function to get the on-screen coordinates for every point
+        in a polygon:
+      </p>
+      <pre><code class="hljs language-ts">export const getPoints = (polygon: Polygon) => {
+  const points: Vector2D[] = [];
+
+  // Push the rightmost point of the polygon to the points array
+  points.push({
+    x: polygon.center.x + polygon.size * Math.cos(0),
+    y: polygon.center.y + polygon.size * Math.sin(0),
+  });
+
+  // Rotate around the center to get the coordinate of every other point 
+  // and add it to the array
+  for (let i = 1; i &lt;= polygon.sides; i++) {
+    const point: Vector2D = {
+      x: Math.round(
+        polygon.center.x +
+          polygon.size * Math.cos((i * 2 * Math.PI) / polygon.sides),
+      ),
+      y: Math.round(
+        polygon.center.y +
+          polygon.size * Math.sin((i * 2 * Math.PI) / polygon.sides),
+      ),
+    };
+    points.push(point);
+  }
+  return points;
+};</code></pre>
+      <p>
+        and a function to extrude the midpoints of each side of a polygon by a
+        given factor:
+      </p>
+      <pre><code class="language-ts">export const extrudeMidpoints = (points: Vector2D[], factor: number) => {
+  let extrudedPoints: Vector2D[] = [];
+
+  // Add a midpoint to the points array for each side of the polygon
+  points = subdivide(points);
+  for (let i = 0; i &lt; points.length; i++) {
+    // Every other point will be a midpoint, so let's only look at those
+    if (i % 2 != 0) {
+      const point = points[i];
+
+      // Find the vector perpendicular to this side
+      const startPoint = points[i - 1];
+      const endPoint = points[(i + 1) % points.length];
+      const normalVector = calculateNormal(startPoint, endPoint);
+
+      // Extrude the midpoint along that vector by the factor
+      // randn_bm() returns a normal distribution,
+      // helps make things look more organic
+      const extrudedPoint: Vector2D = {
+        x: point.x + normalVector.x * factor * randn_bm(),
+        y: point.y + normalVector.y * factor * randn_bm(),
+      };
+      extrudedPoints.push(extrudedPoint);
+    } else {
+      extrudedPoints.push(points[i]);
+    }
+  }
+  return extrudedPoints;
+};</code></pre>
+      <p>
+        to render the effect to the canvas, this function takes a polygon and a
+        color, then recursively calls the extrusion function, which makes a
+        blotchy shape. it then further distorts that shape 50 times, drawing it
+        with lower opacity and a random delay each time:
+      </p>
+      <pre><code class="language-ts">const blotch = (polygon: Polygon, color: string) => {
+  // Start with a distorted polygon
+  const basePolygon = extrudeMidpoints(
+    extrudeMidpoints(extrudeMidpoints(getPoints(polygon), 60), 20),
+    10,
+  );
+
+// Draw 50 times, distorting it further in a fractal
+  let counter = 50;
+  const recursiveDraw = () => {
+    drawPoints(
+      extrudeMidpoints(
+        extrudeMidpoints(extrudeMidpoints(basePolygon, 10), 8),
+        5,
+      ),
+      ctx,
+      color,
+    );
+
+    // Until this function has been called 50 times, call it again
+    if (counter > 0) {
+      counter--;
+      window.setTimeout(
+        recursiveDraw,
+        // Wait about 15ms, with some variation
+        Math.random() * (20 - 20 / counter) + 20 / counter,
+      );
+    }
+  };
+  recursiveDraw();
+};</code></pre>
+      <p>then we call that function whenever the mouse is held down:</p>
+      <pre><code class="language-ts">export const onMouseMove = (ev: MouseEvent) => {
+  // Create a decagon with a random size at the mouse position 
+  const polygon: Polygon = {
+    size: Math.random() * (100 - 50) + 50,
+    sides: 10,
+    center: {
+      x: ev.clientX,
+      y: ev.clientY,
+    },
+  };
+
+  // If the mouse is down and over the canvas, 
+  // draw the blotch after a short delay
+  if (mouseDown && hovered) {
+    sleep(25).then(() => {
+      blotch(polygon);
+    });
+  }
+};</code></pre>
+      <h2>audio</h2>
+      <p>
+        i recorded the audio on my laptop mic and did some eq'ing and
+        compression in ableton, then stacked the samples into harmonies. (the
+        crickets were in the background, i thought they made a nice addition)
+      </p>
+      <a title="click for fullsize" href="/ableton.png">
+        <img src="/ableton.png" class="inline-image" />
+      </a>
+      <p>then i exported the samples as wav's and imported them into Tone:</p>
+      <pre><code class="language-ts">// Start crickets loop as soon as audio is ready
+const crickets = new Tone.Player({
+  url: "/crickets.wav",
+  autostart: true,
+  loop: true,
+  volume: 1,
+}).toDestination();
+
+// Add some reverb
+const reverb = new Tone.Reverb(2);
+
+// Load all of our samples
+const players = new Tone.Players(
+  {
+    a: "/a.wav",
+    s: "/s.wav",
+    d: "/d.wav",
+    f: "/f.wav",
+    g: "/g.wav",
+  },
+  { fadeIn: 2, fadeOut: 0.5, volume: 20 },
+).chain(reverb, Tone.Destination);
+
+// Start the sketch with the first sample ready to play
+let selectedPlayer = players.player("a");</code></pre>
+
+      <p>
+        then Tone listens for the user to click the canvas and press a key, and
+        plays audio and changes the sample accordingly:
+      </p>
+
+      <pre><code class="language-ts">let started = false;
+let painting = false;
+
+// The first time the user clicks the canvas, start Tone,
+// then play the active sample
+export const onMouseDown = async (ev: MouseEvent) => {
+  if (hovered) {
+    if (!started) {
+      await Tone.start().then(() => (started = true));
+    }
+
+    painting = true;
+    selectedPlayer.start();
+    selectedPlayer.loop = true;
+  }
+};
+
+// Stop all audio when the user stops painting
+export const onMouseUp = (ev: MouseEvent) => {
+  players.stopAll();
+  painting = false;
+};
+
+// A switch statement to change the active sample when a key is pressed
+export const onKeyDown = (ev: KeyboardEvent) => {
+  switch (ev.key) {
+    case "a":
+      selectedPlayer.stop();
+      selectedPlayer = players.player("a");
+      if (painting) selectedPlayer.start();
+      break;
+    case "s":
+      selectedPlayer.stop();
+      selectedPlayer = players.player("s");
+      if (painting) selectedPlayer.start();
+      break;
+    case "d":
+      selectedPlayer.stop();
+      selectedPlayer = players.player("d");
+      if (painting) selectedPlayer.start();
+      break;
+    case "f":
+      selectedPlayer.stop();
+      selectedPlayer = players.player("f");
+      if (painting) selectedPlayer.start();
+      break;
+    case "g":
+      selectedPlayer.stop();
+      selectedPlayer = players.player("g");
+      if (painting) selectedPlayer.start();
+      break;
+    default:
+      break;
+  }
+};</code></pre>
+
+      <h1>interaction</h1>
+      <iframe
+        class="youtube-soundpaint"
+        src="https://www.youtube.com/embed/VO64hzssgj4"
+        title="soundpaint"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+      ></iframe>
+    </div>
     <script type="module" src="/src/main.ts"></script>
+    <script></script>
   </body>
 </html>

@@ -5,8 +5,10 @@ const crickets = new Tone.Player({
   url: "/crickets.wav",
   autostart: true,
   loop: true,
+  volume: 1,
 }).toDestination();
 
+const reverb = new Tone.Reverb(2);
 const players = new Tone.Players(
   {
     a: "/a.wav",
@@ -15,9 +17,8 @@ const players = new Tone.Players(
     f: "/f.wav",
     g: "/g.wav",
   },
-  { fadeIn: 2, fadeOut: 0.5 },
-).toDestination();
-
+  { fadeIn: 2, fadeOut: 0.5, volume: 20 },
+).chain(reverb, Tone.Destination);
 let selectedPlayer = players.player("a");
 
 let started = false;
@@ -27,14 +28,14 @@ export const onMouseUp = (ev: MouseEvent) => {
   painting = false;
 };
 export const onMouseDown = async (ev: MouseEvent) => {
-  if (!started) {
-    await Tone.start().then(() => (started = true));
-  }
   if (hovered) {
+    if (!started) {
+      await Tone.start().then(() => (started = true));
+    }
 
-  painting = true;
-  selectedPlayer.start();
-  selectedPlayer.loop = true;
+    painting = true;
+    selectedPlayer.start();
+    selectedPlayer.loop = true;
   }
 };
 

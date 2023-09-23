@@ -14,17 +14,17 @@ export let hovered = false;
 
 export const init = () => {
   canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight * 0.9;
+  canvas.height = window.innerHeight * 0.8;
   if (ctx) draw(ctx);
 };
 
 export const resize = () => {
   offscreenCanvas.width = window.innerWidth;
-  offscreenCanvas.height = window.innerHeight;
+  offscreenCanvas.height = window.innerHeight * 0.8;
   const offscreenCtx = offscreenCanvas.getContext("2d");
   offscreenCtx?.drawImage(canvas, 0, 0);
   canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  canvas.height = window.innerHeight * 0.8;
   ctx?.drawImage(offscreenCanvas, 0, 0);
 };
 
@@ -54,16 +54,29 @@ const drawPoints = (
 };
 
 export const draw = (ctx: CanvasRenderingContext2D) => {
-  const clear = () => {
-    ctx.rect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "rgba(255,255,255,0.02)";
-    ctx.fill();
-    window.setTimeout(clear, 50);
-  };
-  clear();
+  const colors = [
+    "rgba(255, 89, 94, 0.05)",
+    "rgba(255, 202, 58, 0.05)",
+    "rgba(138, 201, 38, 0.05)",
+  ];
+  for (let i = 0; i < 3; i++) {
+    const polygon: Polygon = {
+      size: Math.random() * (200 - 100) + 100,
+      sides: 10,
+      center: {
+        x:
+          Math.random() * (canvas.width * 0.8 - canvas.width * 0.2) +
+          canvas.width * 0.2,
+        y:
+          Math.random() * (canvas.height * 0.8 - canvas.height * 0.2) +
+          canvas.height * 0.2,
+      },
+    };
+    blotch(polygon, colors[i]);
+  }
 };
 
-const blotch = (polygon: Polygon) => {
+const blotch = (polygon: Polygon, colorOverride?: string) => {
   const basePolygon = extrudeMidpoints(
     extrudeMidpoints(extrudeMidpoints(getPoints(polygon), 60), 20),
     10,
@@ -77,7 +90,7 @@ const blotch = (polygon: Polygon) => {
         5,
       ),
       ctx,
-      color,
+      colorOverride || color,
     );
     if (counter > 0) {
       counter--;
@@ -96,15 +109,23 @@ let mouseDown = false;
 
 canvas.addEventListener("mouseenter", () => {
   hovered = true;
-  console.log(hovered);
 });
+
 canvas.addEventListener("mouseleave", () => {
   hovered = false;
-  console.log(hovered);
 });
+
+const clear = () => {
+  ctx?.rect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "rgba(255,255,255,0.01)";
+  ctx?.fill();
+  window.setTimeout(clear, 25);
+};
+
 export const onMouseDown = (ev: MouseEvent) => {
   mouseDown = true;
   if (hovered) {
+    clear();
     const polygon: Polygon = {
       size: Math.random() * (200 - 100) + 100,
       sides: 10,
@@ -131,7 +152,7 @@ export const onMouseMove = (ev: MouseEvent) => {
     },
   };
   if (mouseDown && hovered) {
-    sleep(50).then(() => {
+    sleep(25).then(() => {
       blotch(polygon);
     });
   }
