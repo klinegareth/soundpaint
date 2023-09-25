@@ -94,10 +94,7 @@ const blotch = (polygon: Polygon, colorOverride?: string) => {
     );
     if (counter > 0) {
       counter--;
-      window.setTimeout(
-        recursiveDraw,
-        Math.random() * (20 - 20 / counter) + 20 / counter,
-      );
+      window.requestAnimationFrame(recursiveDraw);
     }
   };
   recursiveDraw();
@@ -119,7 +116,7 @@ const clear = () => {
   ctx?.rect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "rgba(255,255,255,0.01)";
   ctx?.fill();
-  window.setTimeout(clear, 25);
+  window.requestAnimationFrame(clear);
 };
 
 export const onMouseDown = (ev: MouseEvent) => {
